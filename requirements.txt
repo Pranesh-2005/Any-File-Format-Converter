@@ -1,0 +1,10 @@
+Flask==2.2.3
+python-docx==0.8.11
+pypdf2==1.26.0
+comtypes==1.1.7
+python-pptx==0.6.21
+pdf2image==1.16.0
+Pillow==9.5.0
+moviepy==1.0.3
+fitz==1.18.19
+pandas==1.5.3

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Converter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" href="{{ url_for('static', filename='hd.png') }}" type="image/png">
+    <meta name="theme-color" content="#4CAF50">
+</head>
+<body>
+    <h1>Offline File Converter</h1>
+    <form action="/convert" method="post" enctype="multipart/form-data">
+        <label for="file">Upload a file:</label>
+        <input type="file" name="file" id="file" required><br><br>
+        
+        <label for="output_format">Convert to:</label>
+        <select name="output_format" id="output_format" required>
+            <!-- Options will be populated based on the file type -->
+        </select><br><br>
+        
+        <button type="submit">Convert</button>
+    </form>
+    
+    <script>
+        // Define valid conversions for each file type
+        const conversionOptions = {
+            'pdf': [{value: 'docx', text: 'PDF to DOCX'}, {value: 'pptx', text: 'PDF to PPTX'}],
+            'docx': [{value: 'pdf', text: 'DOCX to PDF'}],
+            'pptx': [{value: 'pdf', text: 'PPTX to PDF'}],
+            'jpg': [{value: 'pdf', text: 'Image to PDF'}],
+            'png': [{value: 'pdf', text: 'Image to PDF'}],
+            'xlsx': [{value: 'csv', text: 'Excel to CSV'}],
+            'csv': [{value: 'xlsx', text: 'CSV to Excel'}],
+            'mp4': [{value: 'mp3', text: 'Video to MP3'}],
+            'mov': [{value: 'mp3', text: 'Video to MP3'}]
+        };
+
+        document.getElementById('file').addEventListener('change', function() {
+            const fileInput = this.files[0];
+            if (!fileInput) return;
+
+            const fileExtension = fileInput.name.split('.').pop().toLowerCase();
+            const outputFormatSelect = document.getElementById('output_format');
+            
+            // Clear previous options
+            outputFormatSelect.innerHTML = '';
+
+            // Populate options based on the selected file type
+            if (conversionOptions[fileExtension]) {
+                conversionOptions[fileExtension].forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.value;
+                    opt.text = option.text;
+                    outputFormatSelect.add(opt);
+                });
+            } else {
+                const opt = document.createElement('option');
+                opt.text = 'Unsupported file type';
+                opt.disabled = true;
+                outputFormatSelect.add(opt);
+            }
+        });
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/service-worker.js')
+            .then(() => console.log("Service Worker registered"))
+            .catch(error => console.error("Service Worker registration failed:", error));
+        }
+    </script>
+</body>
+</html>
