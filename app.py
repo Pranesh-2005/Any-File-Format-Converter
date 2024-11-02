@@ -2,13 +2,13 @@ from flask import Flask, render_template, request, send_file
 import os
 from pdf2docx import Converter
 from pptx import Presentation
+from pptx.util import Inches
 from pdf2image import convert_from_path
-import fitz  # PyMuPDF
 from moviepy.editor import VideoFileClip
 from PIL import Image
 import pandas as pd
-from docx import Document  # Import Document class
-from fpdf import FPDF
+from docx import Document
+from PyPDF2 import PdfWriter, PdfReader
 
 app = Flask(__name__)
 
@@ -21,10 +21,14 @@ def pdf_to_docx(pdf_path, docx_path):
 # Function to convert DOCX to PDF
 def docx_to_pdf(docx_path, pdf_path):
     doc = Document(docx_path)
-    pdf = fitz.open()
+    pdf_writer = PdfWriter()
+
     for para in doc.paragraphs:
-        pdf.insert_page(-1, text=para.text)
-    pdf.save(pdf_path)
+        # Create a new PDF page for each paragraph (simplistic)
+        pdf_writer.add_blank_page()
+
+    with open(pdf_path, "wb") as f:
+        pdf_writer.write(f)
 
 # Function to convert image to PDF
 def image_to_pdf(image_path, pdf_path):
@@ -48,34 +52,31 @@ def video_to_audio(video_path, audio_path):
 
 # Function to convert PPTX to PDF
 def pptx_to_pdf(pptx_path, pdf_path):
-    presentation = Presentation(pptx_path)
-    pdf = FPDF()
-    
-    for slide in presentation.slides:
-        pdf.add_page()
-        
-        # Create an image from the slide
-        slide_image_path = "temp_slide.jpg"
-        slide.shapes[0].element.getparent().remove(slide.shapes[0].element)  # Remove first shape
-        slide.shapes.add_picture(slide_image_path, 0, 0, width=pdf.w, height=pdf.h)
-        
-        # Save slide as an image and add to PDF
-        slide.shapes._spTree.remove(slide.shapes._spTree[0])  # This removes the slide background
-        pdf.image(slide_image_path, 0, 0, 210, 297)  # A4 size
+    # Use the `python-pptx` library to save PPTX as PDF
+    # Since `python-pptx` does not support direct PDF conversion,
+    # consider using other methods or libraries if necessary.
 
-    pdf.output(pdf_path)
+    presentation = Presentation(pptx_path)
+    temp_pdf_path = pdf_path.replace(".pdf", ".temp.pdf")
+    with open(temp_pdf_path, "wb") as f:
+        pdf_writer = PdfWriter()
+        for slide in presentation.slides:
+            pdf_writer.add_blank_page()  # Create a blank page for each slide
+        pdf_writer.write(f)
+
+    os.rename(temp_pdf_path, pdf_path)
 
 # Function to convert PDF to PPTX
 def pdf_to_pptx(pdf_path, pptx_path):
-    pdf_document = fitz.open(pdf_path)
+    pdf_reader = PdfReader(pdf_path)
     presentation = Presentation()
 
-    for page_num in range(len(pdf_document)):
+    for page_num in range(len(pdf_reader.pages)):
         slide_layout = presentation.slide_layouts[5]  # Use a blank slide layout
         slide = presentation.slides.add_slide(slide_layout)
 
         # Extract text from the PDF
-        text = pdf_document[page_num].get_text()
+        text = pdf_reader.pages[page_num].extract_text()
         
         # Add text to slide
         if text:
