@@ -1,16 +1,15 @@
 from flask import Flask, render_template, request, send_file
 import os
-import comtypes.client
-import pythoncom
 from pdf2docx import Converter
 from pptx import Presentation
-from pptx.util import Inches
 from pdf2image import convert_from_path
 import fitz  # PyMuPDF
 from moviepy.editor import VideoFileClip
 from PIL import Image
 import pandas as pd
-from docx import Document
+from docx import Document  # Import Document class
+from fpdf import FPDF
+
 app = Flask(__name__)
 
 # Function to convert PDF to DOCX
@@ -49,19 +48,22 @@ def video_to_audio(video_path, audio_path):
 
 # Function to convert PPTX to PDF
 def pptx_to_pdf(pptx_path, pdf_path):
-    pythoncom.CoInitialize()  # Initialize COM library
-    powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
-    powerpoint.Visible = True
+    presentation = Presentation(pptx_path)
+    pdf = FPDF()
+    
+    for slide in presentation.slides:
+        pdf.add_page()
+        
+        # Create an image from the slide
+        slide_image_path = "temp_slide.jpg"
+        slide.shapes[0].element.getparent().remove(slide.shapes[0].element)  # Remove first shape
+        slide.shapes.add_picture(slide_image_path, 0, 0, width=pdf.w, height=pdf.h)
+        
+        # Save slide as an image and add to PDF
+        slide.shapes._spTree.remove(slide.shapes._spTree[0])  # This removes the slide background
+        pdf.image(slide_image_path, 0, 0, 210, 297)  # A4 size
 
-    try:
-        presentation = powerpoint.Presentations.Open(os.path.abspath(pptx_path))
-        presentation.SaveAs(os.path.abspath(pdf_path), 32)  # 32 = ppSaveAsPDF
-        presentation.Close()
-    except Exception as e:
-        print(f"Error during conversion: {e}")
-    finally:
-        powerpoint.Quit()
-        pythoncom.CoUninitialize()  # Uninitialize COM library
+    pdf.output(pdf_path)
 
 # Function to convert PDF to PPTX
 def pdf_to_pptx(pdf_path, pptx_path):
